@@ -6,9 +6,11 @@ import cors from "cors";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 10000;
+
 const allowedOrigins = ["https://nameage-shaikhuwaizs-projects.vercel.app"];
-// Middleware
+
+// ✅ CORS middleware
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -23,28 +25,53 @@ app.use(
   })
 );
 
-app.use(express.json()); // ✅ Add this line here
+app.use(express.json()); // Parse JSON
 
-app.options("*", cors()); // Allow preflight requests
-// MongoDB Atlas connection
+// ✅ OPTIONAL: Preflight handler (if needed)
+app.options("*", (req, res) => {
+  res.sendStatus(200);
+});
+
+// ✅ MongoDB connection and event listener
+mongoose.connection.once("open", () => {
+  console.log("✅ MongoDB connection is open");
+});
+
+// ✅ Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI || "")
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .connect(process.env.MONGO_URI!)
+  .then(() => console.log("🔌 Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Schema + Model
+// ✅ Schema
 const userSchema = new mongoose.Schema({
   name: String,
   age: Number,
 });
 const User = mongoose.model("User", userSchema);
 
-// GET route - just a health check
-app.get("/", (req, res) => {
-  res.send("✅ Server is up and running!");
+// ✅ Health check route
+app.get("/test-db", async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+
+    if (!db) {
+      return res
+        .status(500)
+        .json({ message: "❌ Database not initialized yet" });
+    }
+
+    const collections = await db.listCollections().toArray();
+    res.json({ message: "✅ MongoDB is connected", collections });
+  } catch (err) {
+    console.error("❌ Error fetching collections:", err);
+    res
+      .status(500)
+      .json({ message: "❌ MongoDB connection failed", error: err });
+  }
 });
 
-// POST route - create new user
+// ✅ Create new user
 app.post("/users", async (req, res) => {
   const { name, age } = req.body;
 
@@ -62,6 +89,7 @@ app.post("/users", async (req, res) => {
   }
 });
 
+// ✅ Start server
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
