@@ -3,51 +3,39 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 
+// Load env vars
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 11000;
+const port = process.env.PORT || 3000;
+const mongoUri = process.env.MONGO_URI;
 
-const allowedOrigins = ["https://nameage-shaikhuwaizs-projects.vercel.app"];
+if (!mongoUri) {
+  throw new Error("❌ MONGO_URI is not defined in environment variables");
+}
 
-// ✅ CORS middleware
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "OPTIONS"],
-    credentials: true,
-  })
-);
+// Middlewares
+app.use(cors());
+app.use(express.json());
 
-app.use(express.json()); // Parse JSON
-
-// ✅ OPTIONAL: Preflight handler (if needed)
-app.options("*", (req, res) => {
-  res.sendStatus(200);
-});
-
-// ✅ MongoDB connection and event listener
-mongoose.connection.once("open", () => {
-  console.log("✅ MongoDB connection is open");
-});
-
-// ✅ Connect to MongoDB
+// Connect MongoDB
 mongoose
-  .connect(process.env.MONGO_URI!)
-  .then(() => console.log("🔌 Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .connect(mongoUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  } as any)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed:", err.message);
+    process.exit(1);
+  });
 
-// ✅ Schema
+// Define a simple User model
 const userSchema = new mongoose.Schema({
   name: String,
   age: Number,
 });
+
 const User = mongoose.model("User", userSchema);
 
 // ✅ Health check route
@@ -71,6 +59,7 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("✅ Server is live! Try /test-db to check MongoDB connection.");
 });
