@@ -6,7 +6,7 @@ import cors from "cors";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 11000;
 
 const allowedOrigins = ["https://nameage-shaikhuwaizs-projects.vercel.app"];
 
@@ -69,6 +69,10 @@ app.get("/test-db", async (req, res) => {
       .status(500)
       .json({ message: "❌ MongoDB connection failed", error: err });
   }
+});
+
+app.get("/", (req, res) => {
+  res.send("✅ Server is live! Try /test-db to check MongoDB connection.");
 });
 
 // ✅ Create new user
